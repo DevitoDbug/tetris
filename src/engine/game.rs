@@ -38,46 +38,60 @@ impl Game {
     }
 
     pub async fn start(&mut self) {
-        let mut timer = 0.;
+        let mut down_movement_timer = 0.;
+        let mut sideways_movement_timer = 0.;
+        let mut new_block_spawn_timer = 0.5;
         loop {
             clear_background(WHITE);
 
-            if self.moving_index.len() == 0 {
+            if self.moving_index.len() == 0 && new_block_spawn_timer >= 0.5 {
                 // If we have nothing to move, create something to move
                 self.spawn_block();
             }
 
             self.render_board();
-            let mut sidways_direction: Option<Sideways> = None;
-            if is_key_pressed(KeyCode::Right) {
-                sidways_direction = Some(Sideways::Right);
+            let mut sideways_direction: Option<Sideways> = None;
+            if is_key_down(KeyCode::Right) {
+                sideways_direction = Some(Sideways::Right);
             }
-            if is_key_pressed(KeyCode::Left) {
-                sidways_direction = Some(Sideways::Left);
+            if is_key_down(KeyCode::Left) {
+                sideways_direction = Some(Sideways::Left);
             }
-
-            match sidways_direction {
-                Some(direction) => {
-                    // some shit
-                    if self.can_blocks_move_sideways(&direction) {
-                        self.move_block_sideways(&direction);
-                    }
-                }
-                None => {}
-            };
-
-            if timer >= 0.4 {
+            if is_key_down(KeyCode::Down) {
                 if self.can_blocks_move_down() {
                     self.move_blocks_down();
                 } else {
-                    println!("cannot move down");
                     self.moving_index = vec![];
+                    new_block_spawn_timer = 0.;
                 }
-
-                timer = 0.;
             }
 
-            timer += get_frame_time();
+            if sideways_movement_timer >= 0.08 {
+                match sideways_direction {
+                    Some(direction) => {
+                        if self.can_blocks_move_sideways(&direction) {
+                            self.move_block_sideways(&direction);
+                        }
+                    }
+                    None => {}
+                };
+                sideways_movement_timer = 0.;
+            }
+
+            if down_movement_timer >= 0.4 {
+                if self.can_blocks_move_down() {
+                    self.move_blocks_down();
+                } else {
+                    self.moving_index = vec![];
+                    new_block_spawn_timer = 0.;
+                }
+
+                down_movement_timer = 0.;
+            }
+
+            down_movement_timer += get_frame_time();
+            sideways_movement_timer += get_frame_time();
+            new_block_spawn_timer += get_frame_time();
             next_frame().await;
         }
     }
@@ -188,7 +202,7 @@ impl Game {
 
         for i in &self.moving_index {
             let side_target_index = (*i + dx) as usize;
-            if side_target_index >= self.board.len() || side_target_index < 0 {
+            if side_target_index >= self.board.len() {
                 // Cannot move outside the board
                 return false;
             }
