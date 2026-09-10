@@ -13,10 +13,10 @@ async fn main() {
 }
 
 fn config() -> Conf {
-    let right_panel = 10 * BLOCK_SIZE as i32;
+    let panel = COLS * BLOCK_SIZE as i32;
     Conf {
         window_title: String::from("Tetris"),
-        window_width: (COLS * BLOCK_SIZE as i32) + right_panel,
+        window_width: panel + panel * 1 / 2,
         window_height: ROWS * BLOCK_SIZE as i32,
         window_resizable: false,
 
