@@ -23,7 +23,6 @@ pub struct Game {
     board: Vec<Cell>,
     board_color: Color,
     moving_index: Vec<i32>,
-    block_variations: [[i32; 4]; 7],
     state: GameState,
 }
 
@@ -32,12 +31,10 @@ const ORIGIN_INDEX: i32 = (COLS / 2) - 2;
 
 impl Game {
     pub fn new() -> Self {
-        let variations = Self::gen_blocks();
-
         let board = (0..NUM_OF_CELLS)
             .map(|_| Cell {
                 value: 0,
-                color: BROWN,
+                color: BLACK,
             })
             .collect();
 
@@ -45,7 +42,6 @@ impl Game {
             board,
             board_color: GOLD,
             moving_index: vec![],
-            block_variations: variations,
             state: GameState::Start,
         }
     }
@@ -124,7 +120,7 @@ impl Game {
     pub fn end_game(&self) {
         let width = BLOCK_SIZE * COLS as f32;
         let height = BLOCK_SIZE * ROWS as f32;
-        draw_rectangle(0., 0., width, height, BROWN);
+        draw_rectangle(0., 0., width, height, BLACK);
         draw_text("Game Over", width / 10., height / 2., 60., RED);
     }
 
@@ -144,7 +140,7 @@ impl Game {
             0.,
             BLOCK_SIZE * COLS as f32,
             BLOCK_SIZE * ROWS as f32,
-            BROWN,
+            BLACK,
         );
         for (i, cell) in self.board.iter().enumerate() {
             let x = (i as i32 % COLS) as f32;
@@ -168,10 +164,18 @@ impl Game {
                 );
             }
         }
+
+        draw_rectangle(
+            COLS as f32 * BLOCK_SIZE,
+            0.,
+            COLS as f32 * BLOCK_SIZE * 0.5,
+            ROWS as f32 * BLOCK_SIZE,
+            RED,
+        );
     }
 
-    fn gen_blocks() -> [[i32; 4]; 7] {
-        [
+    fn gen_blocks() -> ([i32; 4], Color) {
+        let varriations = [
             [
                 ORIGIN_INDEX,
                 ORIGIN_INDEX + 1,
@@ -214,31 +218,45 @@ impl Game {
                 ORIGIN_INDEX + 1 + (2 * COLS),
                 ORIGIN_INDEX + (2 * COLS),
             ],
-        ]
+        ];
+
+        let colors = [RED, PURPLE, BLUE, DARKGREEN, BROWN, MAGENTA];
+
+        (
+            varriations[rand::gen_range(0, 6)],
+            colors[rand::gen_range(0, 5)],
+        )
     }
 
     fn spawn_block(&mut self) {
         // Track the moving piece
-        self.moving_index = self.block_variations[rand::gen_range(0, 6)].to_vec();
+        let (rand_block, rand_color) = Self::gen_blocks();
+        self.moving_index = rand_block.to_vec();
 
         // Update the board to use new moving piece
         for val in &self.moving_index {
             self.board[*val as usize].value = 1;
-            self.board[*val as usize].color = RED;
+            self.board[*val as usize].color = rand_color;
         }
     }
 
     fn move_blocks_down(&mut self) {
         let new_indexes: Vec<i32> = self.moving_index.iter().map(|x| x + COLS).collect();
+        let mut color: Option<Color> = None;
 
-        for i in (0..self.moving_index.len()).rev() {
+        for i in 0..self.moving_index.len() {
             self.board[(self.moving_index[i]) as usize].value = 0;
-            self.board[(self.moving_index[i]) as usize].color = BROWN;
+            color = Some(self.board[(self.moving_index[i]) as usize].color);
         }
 
         for index in &new_indexes {
             self.board[*index as usize].value = 1;
-            self.board[*index as usize].color = RED;
+            match color {
+                Some(color) => {
+                    self.board[*index as usize].color = color;
+                }
+                None => {}
+            }
         }
 
         self.moving_index = new_indexes;
@@ -250,15 +268,21 @@ impl Game {
             Sideways::Right => 1,
         };
         let new_indexes: Vec<i32> = self.moving_index.iter().map(|x| x + dx).collect();
+        let mut color: Option<Color> = None;
 
         for i in 0..self.moving_index.len() {
             self.board[(self.moving_index[i]) as usize].value = 0;
-            self.board[(self.moving_index[i]) as usize].color = BROWN;
+            color = Some(self.board[(self.moving_index[i]) as usize].color);
         }
 
         for index in &new_indexes {
             self.board[*index as usize].value = 1;
-            self.board[*index as usize].color = RED;
+            match color {
+                Some(color) => {
+                    self.board[*index as usize].color = color;
+                }
+                None => {}
+            }
         }
 
         self.moving_index = new_indexes;
