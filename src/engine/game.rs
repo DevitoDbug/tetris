@@ -1,6 +1,5 @@
 use crate::engine::consts::{BLOCK_SIZE, COLS, ROWS};
-use macroquad::color::Color;
-use macroquad::prelude::*;
+use macroquad::{color::Color, prelude::*};
 
 #[derive(Debug)]
 pub struct Cell {
@@ -33,6 +32,7 @@ impl Game {
                 color: BROWN,
             })
             .collect();
+
         Self {
             board,
             board_color: GOLD,
@@ -124,8 +124,8 @@ impl Game {
                 draw_rectangle(
                     x * BLOCK_SIZE,
                     y * BLOCK_SIZE,
-                    BLOCK_SIZE,
-                    BLOCK_SIZE,
+                    BLOCK_SIZE - 1.,
+                    BLOCK_SIZE - 1.,
                     cell.color,
                 );
             }
@@ -135,10 +135,10 @@ impl Game {
     fn gen_blocks() -> [[i32; 4]; 7] {
         [
             [
+                ORIGIN_INDEX,
                 ORIGIN_INDEX + 1,
-                ORIGIN_INDEX + 2,
-                ORIGIN_INDEX + 3 + COLS,
-                ORIGIN_INDEX + 4 + COLS,
+                ORIGIN_INDEX + COLS,
+                ORIGIN_INDEX + COLS + 1,
             ],
             [
                 ORIGIN_INDEX,
