@@ -130,7 +130,13 @@ impl Game {
 
     fn spawn_block(&mut self) {
         // Track the moving piece
-        self.moving_index = vec![ORIGIN_INDEX];
+        self.moving_index = vec![
+            ORIGIN_INDEX - 1,
+            ORIGIN_INDEX,
+            ORIGIN_INDEX + COLS + 1,
+            ORIGIN_INDEX + COLS + 2,
+        ];
+        println!("spawned: {:?}", self.moving_index);
 
         // Update the board to use new moving piece
         for val in &self.moving_index {
@@ -156,21 +162,20 @@ impl Game {
     }
 
     fn move_block_sideways(&mut self, direction: &Sideways) {
-        let mut new_indexes: Vec<i32> = vec![];
         let dx: i32 = match direction {
             Sideways::Left => -1,
             Sideways::Right => 1,
         };
+        let new_indexes: Vec<i32> = self.moving_index.iter().map(|x| x + dx).collect();
 
-        for i in (0..self.moving_index.len()).rev() {
-            let side_target_index = (self.moving_index[i] as i32 + dx) as usize;
+        for i in 0..self.moving_index.len() {
             self.board[(self.moving_index[i]) as usize].value = 0;
             self.board[(self.moving_index[i]) as usize].color = BROWN;
+        }
 
-            self.board[side_target_index].value = 1;
-            self.board[side_target_index].color = RED;
-
-            new_indexes.push(side_target_index as i32);
+        for index in &new_indexes {
+            self.board[*index as usize].value = 1;
+            self.board[*index as usize].color = RED;
         }
 
         self.moving_index = new_indexes;
@@ -220,12 +225,15 @@ impl Game {
                 }
             }
 
-            if self.board[*i as usize].value != 1  || // An empty cell  
-                self.board[side_target_index].value == 1
-            {
+            if self.moving_index.contains(&(side_target_index as i32)) {
+                continue;
+            }
+
+            if self.board[side_target_index].value == 1 {
                 return false;
             }
         }
+
         true
     }
 }
