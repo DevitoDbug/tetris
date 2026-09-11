@@ -136,7 +136,6 @@ impl Game {
             ORIGIN_INDEX + COLS + 1,
             ORIGIN_INDEX + COLS + 2,
         ];
-        println!("spawned: {:?}", self.moving_index);
 
         // Update the board to use new moving piece
         for val in &self.moving_index {
@@ -146,16 +145,16 @@ impl Game {
     }
 
     fn move_blocks_down(&mut self) {
-        let mut new_indexes: Vec<i32> = vec![];
+        let new_indexes: Vec<i32> = self.moving_index.iter().map(|x| x + COLS).collect();
+
         for i in (0..self.moving_index.len()).rev() {
-            let down_target_index = (self.moving_index[i] + COLS) as usize;
             self.board[(self.moving_index[i]) as usize].value = 0;
             self.board[(self.moving_index[i]) as usize].color = BROWN;
+        }
 
-            self.board[down_target_index].value = 1;
-            self.board[down_target_index].color = RED;
-
-            new_indexes.push(down_target_index as i32);
+        for index in &new_indexes {
+            self.board[*index as usize].value = 1;
+            self.board[*index as usize].color = RED;
         }
 
         self.moving_index = new_indexes;
@@ -189,9 +188,11 @@ impl Game {
                 return false;
             }
 
-            if self.board[*i as usize].value != 1  || // An empty cell  
-                self.board[down_target_index].value == 1
-            {
+            if self.moving_index.contains(&(down_target_index as i32)) {
+                continue;
+            }
+
+            if self.board[down_target_index].value == 1 {
                 return false;
             }
         }
