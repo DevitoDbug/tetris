@@ -12,11 +12,19 @@ enum Sideways {
     Right,
 }
 
+enum GameState {
+    End,
+    Pause,
+    Resume,
+    Start,
+}
+
 pub struct Game {
     board: Vec<Cell>,
     board_color: Color,
     moving_index: Vec<i32>,
     block_variations: [[i32; 4]; 7],
+    state: GameState,
 }
 
 const NUM_OF_CELLS: i32 = COLS * ROWS;
@@ -38,6 +46,7 @@ impl Game {
             board_color: GOLD,
             moving_index: vec![],
             block_variations: variations,
+            state: GameState::Start,
         }
     }
 
@@ -96,8 +105,37 @@ impl Game {
             down_movement_timer += get_frame_time();
             sideways_movement_timer += get_frame_time();
             new_block_spawn_timer += get_frame_time();
+
+            if self.check_is_end_game() {
+                self.state = GameState::End;
+            }
+
+            match self.state {
+                GameState::End => {
+                    self.end_game();
+                }
+                _ => {}
+            }
+
             next_frame().await;
         }
+    }
+
+    pub fn end_game(&self) {
+        let width = BLOCK_SIZE * COLS as f32;
+        let height = BLOCK_SIZE * ROWS as f32;
+        draw_rectangle(0., 0., width, height, BROWN);
+        draw_text("Game Over", width / 10., height / 2., 60., RED);
+    }
+
+    pub fn check_is_end_game(&self) -> bool {
+        if self.board[ORIGIN_INDEX as usize].value == 1
+            && !self.moving_index.contains(&ORIGIN_INDEX)
+        {
+            return true;
+        }
+
+        false
     }
 
     pub fn render_board(&self) {
