@@ -17,6 +17,7 @@ pub struct Game {
     board: Vec<Cell>,
     board_color: Color,
     moving_index: Vec<i32>,
+    block_variations: [[i32; 4]; 7],
 }
 
 const NUM_OF_CELLS: i32 = COLS * ROWS;
@@ -24,6 +25,8 @@ const ORIGIN_INDEX: i32 = (COLS / 2) - 2;
 
 impl Game {
     pub fn new() -> Self {
+        let variations = Self::gen_blocks();
+
         let board = (0..NUM_OF_CELLS)
             .map(|_| Cell {
                 value: 0,
@@ -34,6 +37,7 @@ impl Game {
             board,
             board_color: GOLD,
             moving_index: vec![],
+            block_variations: variations,
         }
     }
 
@@ -128,14 +132,56 @@ impl Game {
         }
     }
 
+    fn gen_blocks() -> [[i32; 4]; 7] {
+        [
+            [
+                ORIGIN_INDEX + 1,
+                ORIGIN_INDEX + 2,
+                ORIGIN_INDEX + 3 + COLS,
+                ORIGIN_INDEX + 4 + COLS,
+            ],
+            [
+                ORIGIN_INDEX,
+                ORIGIN_INDEX + COLS,
+                ORIGIN_INDEX + (2 * COLS),
+                ORIGIN_INDEX + (3 * COLS),
+            ],
+            [
+                ORIGIN_INDEX,
+                ORIGIN_INDEX + 1,
+                ORIGIN_INDEX + (1 + COLS),
+                ORIGIN_INDEX + (2 + COLS),
+            ],
+            [
+                ORIGIN_INDEX + 1,
+                ORIGIN_INDEX + 2,
+                ORIGIN_INDEX + COLS,
+                ORIGIN_INDEX + (1 + COLS),
+            ],
+            [
+                ORIGIN_INDEX,
+                ORIGIN_INDEX + 1,
+                ORIGIN_INDEX + (1 + COLS),
+                ORIGIN_INDEX + (2 + COLS),
+            ],
+            [
+                ORIGIN_INDEX,
+                ORIGIN_INDEX + COLS,
+                ORIGIN_INDEX + (2 * COLS),
+                ORIGIN_INDEX + (2 * COLS) + 1,
+            ],
+            [
+                ORIGIN_INDEX + 1,
+                ORIGIN_INDEX + 1 + COLS,
+                ORIGIN_INDEX + 1 + (2 * COLS),
+                ORIGIN_INDEX + (2 * COLS),
+            ],
+        ]
+    }
+
     fn spawn_block(&mut self) {
         // Track the moving piece
-        self.moving_index = vec![
-            ORIGIN_INDEX - 1,
-            ORIGIN_INDEX,
-            ORIGIN_INDEX + COLS + 1,
-            ORIGIN_INDEX + COLS + 2,
-        ];
+        self.moving_index = self.block_variations[rand::gen_range(0, 6)].to_vec();
 
         // Update the board to use new moving piece
         for val in &self.moving_index {
