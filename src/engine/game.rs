@@ -225,7 +225,6 @@ impl Game {
                     let target_index = (i - COLS) as usize;
 
                     self.board[i as usize].value = self.board[target_index].value;
-
                     self.board[i as usize].color = self.board[target_index].color;
                 }
 
@@ -234,11 +233,7 @@ impl Game {
                     self.board[i as usize].value = 0;
                     self.board[i as usize].color = BLACK;
                 }
-
-                // Stay on this row.
-                // Something else may have fallen into it.
             } else {
-                // This row wasn't cleared, so now move upward.
                 row_end = row_start;
                 row_start = row_end - COLS;
             }
