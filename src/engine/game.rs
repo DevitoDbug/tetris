@@ -90,7 +90,6 @@ impl Game {
                 }
 
                 GameState::Restart => {
-                    println!("restart state detected");
                     self.board = (0..NUM_OF_CELLS)
                         .map(|_| Cell {
                             value: 0,
@@ -110,6 +109,7 @@ impl Game {
             }
 
             self.check_score();
+            self.clean_board();
             next_frame().await;
         }
     }
@@ -195,17 +195,54 @@ impl Game {
             }
             if row_points == COLS {
                 total_points += row_points;
-                // clean up cells that have been counted as points
-                for i in row_start..row_end {
-                    self.board[i as usize].value = 0;
-                    self.board[i as usize].color = BLACK;
-                }
+                // no longer clearing cells here — clean_board handles that via the shift
             }
             row_end = row_start;
             row_start = row_end - COLS;
         }
 
         self.score += total_points;
+    }
+
+    fn clean_board(&mut self) {
+        let mut row_end = self.board.len() as i32;
+        let mut row_start = row_end - COLS;
+
+        while row_start >= 0 {
+            let mut cells = 0;
+
+            for i in row_start..row_end {
+                if self.board[i as usize].value != 1 || self.moving_index.contains(&(i as i32)) {
+                    break;
+                }
+
+                cells += 1;
+            }
+
+            if cells == COLS {
+                // Shift everything above this row down.
+                for i in (COLS..row_end).rev() {
+                    let target_index = (i - COLS) as usize;
+
+                    self.board[i as usize].value = self.board[target_index].value;
+
+                    self.board[i as usize].color = self.board[target_index].color;
+                }
+
+                // Empty the top row.
+                for i in 0..COLS {
+                    self.board[i as usize].value = 0;
+                    self.board[i as usize].color = BLACK;
+                }
+
+                // Stay on this row.
+                // Something else may have fallen into it.
+            } else {
+                // This row wasn't cleared, so now move upward.
+                row_end = row_start;
+                row_start = row_end - COLS;
+            }
+        }
     }
 
     fn check_is_end_game(&self) -> bool {
