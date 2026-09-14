@@ -58,10 +58,9 @@ impl Game {
         let mut down_movement_timer = 0.;
         let mut sideways_movement_timer = 0.;
         let mut new_block_spawn_timer = 0.5;
+
         loop {
             clear_background(WHITE);
-
-            println!("state is now: {:?}", self.state);
 
             match self.state {
                 GameState::End => {
@@ -101,16 +100,16 @@ impl Game {
 
                     self.moving_index = vec![];
                     self.state = GameState::Play;
+                    self.score = 0;
                     self.play_game(
                         &mut down_movement_timer,
                         &mut sideways_movement_timer,
                         &mut new_block_spawn_timer,
                     );
                 }
-
-                _ => {}
             }
 
+            self.check_score();
             next_frame().await;
         }
     }
@@ -182,7 +181,34 @@ impl Game {
         }
     }
 
-    pub fn check_is_end_game(&self) -> bool {
+    fn check_score(&mut self) {
+        let mut total_points = 0;
+        let mut row_end = self.board.len() as i32;
+        let mut row_start = row_end - COLS;
+        while row_start >= 0 {
+            let mut row_points = 0;
+            for i in row_start..row_end {
+                if self.board[i as usize].value != 1 || self.moving_index.contains(&i) {
+                    break;
+                }
+                row_points += 1;
+            }
+            if row_points == COLS {
+                total_points += row_points;
+                // clean up cells that have been counted as points
+                for i in row_start..row_end {
+                    self.board[i as usize].value = 0;
+                    self.board[i as usize].color = BLACK;
+                }
+            }
+            row_end = row_start;
+            row_start = row_end - COLS;
+        }
+
+        self.score += total_points;
+    }
+
+    fn check_is_end_game(&self) -> bool {
         if self.board[ORIGIN_INDEX as usize].value == 1
             && !self.moving_index.contains(&ORIGIN_INDEX)
         {
@@ -192,7 +218,7 @@ impl Game {
         false
     }
 
-    pub fn render_board(&self) {
+    fn render_board(&self) {
         draw_rectangle(
             0.,
             0.,
@@ -234,6 +260,15 @@ impl Game {
         draw_rectangle(side_panel_x, 0., side_panel_w, side_panel_h, BLACK);
 
         let ui = &mut root_ui();
+
+        draw_rectangle(side_panel_x + 2., 0.2, btn_width, btn_height * 2., WHITE);
+        draw_text(
+            format!("SCORE: {}", self.score),
+            side_panel_x + 2.,
+            72.,
+            25.,
+            PURPLE,
+        );
 
         match self.state {
             GameState::Play => {
