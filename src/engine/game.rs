@@ -1,5 +1,10 @@
 use crate::engine::consts::{BLOCK_SIZE, COLS, ROWS};
-use macroquad::{color::Color, prelude::*};
+use ::rand::random_range as external_rand;
+use macroquad::{
+    color::Color,
+    prelude::*,
+    ui::{root_ui, widgets},
+};
 
 #[derive(Debug)]
 pub struct Cell {
@@ -14,15 +19,16 @@ enum Sideways {
 
 enum GameState {
     End,
+    Restart,
     Pause,
-    Resume,
-    Start,
+    Play,
 }
 
 pub struct Game {
     board: Vec<Cell>,
     board_color: Color,
     moving_index: Vec<i32>,
+    score: i32,
     state: GameState,
 }
 
@@ -42,7 +48,8 @@ impl Game {
             board,
             board_color: GOLD,
             moving_index: vec![],
-            state: GameState::Start,
+            score: 0,
+            state: GameState::Play,
         }
     }
 
@@ -53,55 +60,6 @@ impl Game {
         loop {
             clear_background(WHITE);
 
-            if self.moving_index.len() == 0 && new_block_spawn_timer >= 0.5 {
-                // If we have nothing to move, create something to move
-                self.spawn_block();
-            }
-
-            self.render_board();
-            let mut sideways_direction: Option<Sideways> = None;
-            if is_key_down(KeyCode::Right) {
-                sideways_direction = Some(Sideways::Right);
-            }
-            if is_key_down(KeyCode::Left) {
-                sideways_direction = Some(Sideways::Left);
-            }
-            if is_key_down(KeyCode::Down) {
-                if self.can_blocks_move_down() {
-                    self.move_blocks_down();
-                } else {
-                    self.moving_index = vec![];
-                    new_block_spawn_timer = 0.;
-                }
-            }
-
-            if sideways_movement_timer >= 0.08 {
-                match sideways_direction {
-                    Some(direction) => {
-                        if self.can_blocks_move_sideways(&direction) {
-                            self.move_block_sideways(&direction);
-                        }
-                    }
-                    None => {}
-                };
-                sideways_movement_timer = 0.;
-            }
-
-            if down_movement_timer >= 0.4 {
-                if self.can_blocks_move_down() {
-                    self.move_blocks_down();
-                } else {
-                    self.moving_index = vec![];
-                    new_block_spawn_timer = 0.;
-                }
-
-                down_movement_timer = 0.;
-            }
-
-            down_movement_timer += get_frame_time();
-            sideways_movement_timer += get_frame_time();
-            new_block_spawn_timer += get_frame_time();
-
             if self.check_is_end_game() {
                 self.state = GameState::End;
             }
@@ -109,7 +67,42 @@ impl Game {
             match self.state {
                 GameState::End => {
                     self.end_game();
+                    self.render_sidebar();
                 }
+                GameState::Play => {
+                    self.render_board();
+                    self.render_sidebar();
+                    self.play_game(
+                        &mut down_movement_timer,
+                        &mut sideways_movement_timer,
+                        &mut new_block_spawn_timer,
+                    );
+                    down_movement_timer += get_frame_time();
+                    sideways_movement_timer += get_frame_time();
+                    new_block_spawn_timer += get_frame_time();
+                }
+                GameState::Pause => {
+                    self.render_board();
+                    self.render_sidebar();
+                    self.pause_game();
+                }
+
+                GameState::Restart => {
+                    // Reset the score
+                    // Reset the board
+                    // Reset the game state
+                    let board = (0..NUM_OF_CELLS)
+                        .map(|_| Cell {
+                            value: 0,
+                            color: BLACK,
+                        })
+                        .collect();
+
+                    self.board = board;
+                    self.moving_index = vec![];
+                    self.state = GameState::Play;
+                }
+
                 _ => {}
             }
 
@@ -120,8 +113,68 @@ impl Game {
     pub fn end_game(&self) {
         let width = BLOCK_SIZE * COLS as f32;
         let height = BLOCK_SIZE * ROWS as f32;
-        draw_rectangle(0., 0., width, height, BLACK);
-        draw_text("Game Over", width / 10., height / 2., 60., RED);
+        self.render_board();
+        draw_rectangle(width / 60., height / 2. - 70., width - 10., 100., WHITE);
+        draw_text("Game Over", width / 50., height / 2., 80., RED);
+    }
+
+    pub fn pause_game(&self) {
+        let width = BLOCK_SIZE * COLS as f32;
+        let height = BLOCK_SIZE * ROWS as f32;
+        self.render_board();
+        draw_rectangle(width / 60., height / 2. - 70., width - 10., 100., WHITE);
+        draw_text("Pause", width / 5., height / 2., 80., BLUE);
+    }
+
+    pub fn play_game(
+        &mut self,
+        down_movement_timer: &mut f32,
+        sideways_movement_timer: &mut f32,
+        new_block_spawn_timer: &mut f32,
+    ) {
+        if self.moving_index.len() == 0 && *new_block_spawn_timer >= 0.5 {
+            // If we have nothing to move, create something to move
+            self.spawn_block();
+        }
+
+        let mut sideways_direction: Option<Sideways> = None;
+        if is_key_down(KeyCode::Right) {
+            sideways_direction = Some(Sideways::Right);
+        }
+        if is_key_down(KeyCode::Left) {
+            sideways_direction = Some(Sideways::Left);
+        }
+        if is_key_down(KeyCode::Down) {
+            if self.can_blocks_move_down() {
+                self.move_blocks_down();
+            } else {
+                self.moving_index = vec![];
+                *new_block_spawn_timer = 0.;
+            }
+        }
+
+        if *sideways_movement_timer >= 0.08 {
+            match sideways_direction {
+                Some(direction) => {
+                    if self.can_blocks_move_sideways(&direction) {
+                        self.move_block_sideways(&direction);
+                    }
+                }
+                None => {}
+            };
+            *sideways_movement_timer = 0.;
+        }
+
+        if *down_movement_timer >= 0.4 {
+            if self.can_blocks_move_down() {
+                self.move_blocks_down();
+            } else {
+                self.moving_index = vec![];
+                *new_block_spawn_timer = 0.;
+            }
+
+            *down_movement_timer = 0.;
+        }
     }
 
     pub fn check_is_end_game(&self) -> bool {
@@ -150,7 +203,7 @@ impl Game {
                 y * BLOCK_SIZE,
                 BLOCK_SIZE,
                 BLOCK_SIZE,
-                2.,
+                1.,
                 self.board_color,
             );
 
@@ -164,14 +217,58 @@ impl Game {
                 );
             }
         }
+    }
 
-        draw_rectangle(
-            COLS as f32 * BLOCK_SIZE,
-            0.,
-            COLS as f32 * BLOCK_SIZE * 0.5,
-            ROWS as f32 * BLOCK_SIZE,
-            RED,
-        );
+    fn render_sidebar(&mut self) {
+        let side_panel_w = COLS as f32 * BLOCK_SIZE * 0.5;
+        let side_panel_h = ROWS as f32 * BLOCK_SIZE;
+        let side_panel_x = COLS as f32 * BLOCK_SIZE;
+        let btn_height = 60.;
+        let btn_width = 150.;
+
+        draw_rectangle(side_panel_x, 0., side_panel_w, side_panel_h, BLACK);
+
+        let ui = &mut root_ui();
+
+        match self.state {
+            GameState::Play => {
+                if widgets::Button::new("PAUSE")
+                    .position(vec2(side_panel_x + 2., side_panel_h * 0.2))
+                    .size(vec2(btn_width, btn_height))
+                    .ui(ui)
+                {
+                    self.state = GameState::Pause;
+                }
+            }
+            GameState::End => {
+                if widgets::Button::new("RESTART")
+                    .position(vec2(side_panel_x + 2., side_panel_h * 0.2))
+                    .size(vec2(btn_width, btn_height))
+                    .ui(ui)
+                {
+                    self.state = GameState::Restart;
+                }
+            }
+            _ => {
+                if widgets::Button::new("PLAY")
+                    .position(vec2(side_panel_x + 2., side_panel_h * 0.2))
+                    .size(vec2(btn_width, btn_height))
+                    .ui(ui)
+                {
+                    self.state = GameState::Play;
+                }
+                if widgets::Button::new("RESTART")
+                    .position(vec2(
+                        side_panel_x + 2.,
+                        side_panel_h * 0.2 + btn_height + 4.,
+                    ))
+                    .size(vec2(btn_width, btn_height))
+                    .ui(ui)
+                {
+                    self.state = GameState::Restart;
+                }
+            }
+        }
     }
 
     fn gen_blocks() -> ([i32; 4], Color) {
@@ -223,8 +320,8 @@ impl Game {
         let colors = [RED, PURPLE, BLUE, DARKGREEN, BROWN, MAGENTA];
 
         (
-            varriations[rand::gen_range(0, 6)],
-            colors[rand::gen_range(0, 5)],
+            varriations[external_rand(0..=6)],
+            colors[external_rand(0..=5)],
         )
     }
 
