@@ -333,8 +333,16 @@ impl Game {
     fn spawn_block(&mut self) {
         // Track the moving piece
         let (rand_block, rand_color) = Self::gen_blocks();
-        self.moving_index = rand_block.to_vec();
 
+        // The blocks could have reached to the very top
+        for block in rand_block {
+            if self.board[block as usize].value == 1 {
+                self.state = GameState::End;
+                return;
+            }
+        }
+
+        self.moving_index = rand_block.to_vec();
         // Update the board to use new moving piece
         for val in &self.moving_index {
             self.board[*val as usize].value = 1;
