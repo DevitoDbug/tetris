@@ -17,6 +17,7 @@ enum Sideways {
     Right,
 }
 
+#[derive(Debug)]
 enum GameState {
     End,
     Restart,
@@ -60,9 +61,7 @@ impl Game {
         loop {
             clear_background(WHITE);
 
-            if self.check_is_end_game() {
-                self.state = GameState::End;
-            }
+            println!("state is now: {:?}", self.state);
 
             match self.state {
                 GameState::End => {
@@ -80,6 +79,10 @@ impl Game {
                     down_movement_timer += get_frame_time();
                     sideways_movement_timer += get_frame_time();
                     new_block_spawn_timer += get_frame_time();
+
+                    if self.check_is_end_game() {
+                        self.state = GameState::End;
+                    }
                 }
                 GameState::Pause => {
                     self.render_board();
@@ -88,19 +91,21 @@ impl Game {
                 }
 
                 GameState::Restart => {
-                    // Reset the score
-                    // Reset the board
-                    // Reset the game state
-                    let board = (0..NUM_OF_CELLS)
+                    println!("restart state detected");
+                    self.board = (0..NUM_OF_CELLS)
                         .map(|_| Cell {
                             value: 0,
                             color: BLACK,
                         })
                         .collect();
 
-                    self.board = board;
                     self.moving_index = vec![];
                     self.state = GameState::Play;
+                    self.play_game(
+                        &mut down_movement_timer,
+                        &mut sideways_movement_timer,
+                        &mut new_block_spawn_timer,
+                    );
                 }
 
                 _ => {}
