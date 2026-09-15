@@ -373,7 +373,7 @@ impl Game {
                 ORIGIN_INDEX,
                 ORIGIN_INDEX + 1,
                 ORIGIN_INDEX + (1 + COLS),
-                ORIGIN_INDEX + (2 + COLS),
+                ORIGIN_INDEX + 2,
             ],
             [
                 ORIGIN_INDEX,
