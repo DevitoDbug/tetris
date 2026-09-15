@@ -344,7 +344,7 @@ impl Game {
     }
 
     fn gen_blocks() -> ([i32; 4], Color) {
-        let varriations = [
+        let variations = [
             [
                 ORIGIN_INDEX,
                 ORIGIN_INDEX + 1,
@@ -376,6 +376,12 @@ impl Game {
                 ORIGIN_INDEX + 2,
             ],
             [
+                ORIGIN_INDEX + COLS,
+                ORIGIN_INDEX + COLS + 1,
+                ORIGIN_INDEX + 1,
+                ORIGIN_INDEX + COLS + 2,
+            ],
+            [
                 ORIGIN_INDEX,
                 ORIGIN_INDEX + COLS,
                 ORIGIN_INDEX + (2 * COLS),
@@ -392,8 +398,8 @@ impl Game {
         let colors = [RED, PURPLE, BLUE, DARKGREEN, BROWN, MAGENTA];
 
         (
-            varriations[external_rand(0..=6)],
-            colors[external_rand(0..=5)],
+            variations[external_rand(0..=variations.len() - 1)],
+            colors[external_rand(0..=colors.len() - 1)],
         )
     }
 
